@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { io } from "socket.io-client";
 
-const SERVER_URL = `http://${window.location.hostname}:3001`;
+//const SERVER_URL = `http://${window.location.hostname}:3001`;
+const SERVER_URL = `http://${window.location.hostname}`;
 
 // ─── Square ───────────────────────────────────────────────
 function Square({ value, onClick, isWinning, isDisabled, index }) {
