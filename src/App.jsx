@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { io } from "socket.io-client";
 
-//const SERVER_URL = `http://${window.location.hostname}:3001`;
-const SERVER_URL = `https://${window.location.hostname}`;
+// Always use the secure version of the URL in production
+const rawUrl = import.meta.env.VITE_SERVER_URL || `http://${window.location.hostname}:3001`;
+const SERVER_URL = rawUrl.replace(/^http:\/\//, window.location.protocol === "https:" ? "https://" : "http://");
 
 // ─── Square ───────────────────────────────────────────────
 function Square({ value, onClick, isWinning, isDisabled, index }) {
@@ -56,14 +57,22 @@ function ScoreBoard({ scores, myMark, currentMark, gameActive }) {
 }
 
 // ─── Lobby ────────────────────────────────────────────────
-function Lobby({ onCreate, onJoin, error }) {
+function Lobby({ onCreate, onJoin, error, connected }) {
   const [joinCode, setJoinCode] = useState("");
   return (
     <div className="lobby">
+      {!connected && (
+        <div className="lobby-connecting">
+          <div className="waiting-spinner" style={{ width: 24, height: 24, borderWidth: 2 }} />
+          <span>Connecting to server…</span>
+        </div>
+      )}
       <div className="lobby-card">
         <h2 className="lobby-title">New Game</h2>
         <p className="lobby-desc">Create a room and share the code with your opponent.</p>
-        <button className="btn btn--primary btn--full" onClick={onCreate}>Create Room</button>
+        <button className="btn btn--primary btn--full" onClick={onCreate} disabled={!connected}>
+          {connected ? "Create Room" : "Waiting for connection…"}
+        </button>
       </div>
       <div className="lobby-divider"><span>or</span></div>
       <div className="lobby-card">
@@ -74,14 +83,15 @@ function Lobby({ onCreate, onJoin, error }) {
           placeholder="Enter room code…"
           value={joinCode}
           onChange={e => setJoinCode(e.target.value.toUpperCase())}
-          onKeyDown={e => e.key === "Enter" && joinCode && onJoin(joinCode)}
+          onKeyDown={e => e.key === "Enter" && joinCode && connected && onJoin(joinCode)}
           maxLength={6}
           spellCheck={false}
+          disabled={!connected}
         />
         <button
           className="btn btn--secondary btn--full"
           onClick={() => joinCode && onJoin(joinCode)}
-          disabled={!joinCode}
+          disabled={!joinCode || !connected}
         >Join Room</button>
       </div>
       {error && <p className="lobby-error">{error}</p>}
@@ -126,18 +136,37 @@ export default function App() {
   const [playerLeft, setPlayerLeft] = useState(false);
   const [lobbyError, setLobbyError] = useState("");
   const [connected, setConnected] = useState(false);
+  const [connError, setConnError] = useState("");
 
   useEffect(() => {
-    const socket = io(SERVER_URL);
+    const socket = io(SERVER_URL, {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+    });
     socketRef.current = socket;
 
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
+    socket.on("connect", () => {
+      setConnected(true); setConnError("");
+      console.log("[DEBUG] Connected, socket id:", socket.id);
+    });
+    socket.on("disconnect", () => {
+      setConnected(false);
+      console.log("[DEBUG] Disconnected");
+    });
+    socket.on("connect_error", (err) => {
+      setConnected(false);
+      setConnError(`Cannot reach server: ${err.message}`);
+      console.error("[DEBUG] Connection error:", err);
+    });
 
     socket.on("room_created", ({ code, mark }) => {
+      console.log("[DEBUG] room_created:", code, mark);
       setRoomCode(code); setMyMark(mark); setScreen("waiting");
     });
     socket.on("room_joined", ({ code, mark }) => {
+      console.log("[DEBUG] room_joined:", code, mark);
       setRoomCode(code); setMyMark(mark);
     });
     socket.on("game_start", ({ squares, isXTurn, scores }) => {
@@ -156,8 +185,20 @@ export default function App() {
     return () => socket.disconnect();
   }, []);
 
-  const handleCreate = () => { setLobbyError(""); socketRef.current.emit("create_room"); };
-  const handleJoin = (code) => { setLobbyError(""); socketRef.current.emit("join_room", { code }); };
+  const handleCreate = () => {
+    setLobbyError("");
+    console.log("[DEBUG] Create Room clicked");
+    console.log("[DEBUG] Socket connected:", socketRef.current?.connected);
+    console.log("[DEBUG] Socket id:", socketRef.current?.id);
+    console.log("[DEBUG] SERVER_URL:", SERVER_URL);
+    socketRef.current.emit("create_room");
+    console.log("[DEBUG] create_room event emitted");
+  };
+  const handleJoin = (code) => {
+    setLobbyError("");
+    console.log("[DEBUG] Join Room clicked, code:", code);
+    socketRef.current.emit("join_room", { code });
+  };
   const handleMove = (index) => {
     if (!result && squares[index] === null)
       socketRef.current.emit("make_move", { code: roomCode, index });
@@ -196,11 +237,12 @@ export default function App() {
         </h1>
         <p className="subtitle">Tic · Tac · Toe</p>
         <div className={`connection-dot ${connected ? "connection-dot--on" : "connection-dot--off"}`}>
-          <span className="connection-pip" />{connected ? "Online" : "Connecting…"}
+          <span className="connection-pip" />{connected ? "Online" : connError ? "Error" : "Connecting…"}
         </div>
+        {connError && <p className="conn-error">{connError}</p>}
       </header>
 
-      {screen === "lobby" && <Lobby onCreate={handleCreate} onJoin={handleJoin} error={lobbyError} />}
+      {screen === "lobby" && <Lobby onCreate={handleCreate} onJoin={handleJoin} error={lobbyError} connected={connected} />}
       {screen === "waiting" && <WaitingRoom code={roomCode} onCancel={handleLeave} />}
 
       {screen === "game" && (
