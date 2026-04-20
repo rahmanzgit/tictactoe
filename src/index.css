@@ -347,6 +347,18 @@ body {
   border: 1px solid var(--border);
 }
 
+.conn-error {
+  font-size: 0.72rem;
+  color: var(--x-color);
+  background: rgba(232,69,60,0.08);
+  border: 1px solid rgba(232,69,60,0.2);
+  border-radius: 8px;
+  padding: 6px 12px;
+  text-align: center;
+  max-width: 320px;
+  word-break: break-all;
+}
+
 /* ── Connection dot ── */
 .connection-dot {
   display: inline-flex;
@@ -372,6 +384,19 @@ body {
 .room-badge strong { color: var(--text); font-family: 'Space Mono', monospace; }
 
 /* ── Lobby ── */
+.lobby-connecting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  width: 100%;
+}
+
 .lobby { display: flex; flex-direction: column; gap: 0; width: 100%; }
 .lobby-card {
   background: var(--surface);
@@ -438,7 +463,53 @@ body {
   background: var(--surface-2); color: var(--o-color);
   border: 1px solid rgba(60,158,232,0.3); box-shadow: 0 4px 18px rgba(60,158,232,0.1);
 }
+.btn--primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 .btn--secondary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── Featured lobby card ── */
+.lobby-card--featured {
+  border-color: rgba(255,255,255,0.12);
+  background: linear-gradient(135deg, rgba(60,158,232,0.06), rgba(232,69,60,0.06));
+}
+.lobby-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lobby-badge {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--o-color);
+  background: rgba(60,158,232,0.12);
+  border: 1px solid rgba(60,158,232,0.25);
+  border-radius: 99px;
+  padding: 3px 8px;
+}
+
+/* ── Difficulty buttons ── */
+.difficulty-row {
+  display: flex;
+  gap: 8px;
+}
+.btn--difficulty {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.15s, box-shadow 0.15s;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.btn--difficulty:hover { transform: translateY(-2px); filter: brightness(1.15); }
+.btn--difficulty:active { transform: translateY(0); }
+.btn--difficulty-easy  { border-color: rgba(74,222,128,0.35); color: #4ade80; box-shadow: 0 2px 12px rgba(74,222,128,0.1); }
+.btn--difficulty-medium { border-color: rgba(250,204,21,0.35); color: #facc15; box-shadow: 0 2px 12px rgba(250,204,21,0.1); }
+.btn--difficulty-hard  { border-color: rgba(232,69,60,0.35); color: var(--x-color); box-shadow: 0 2px 12px rgba(232,69,60,0.1); }
 
 /* ── Responsive ── */
 @media (max-width: 380px) {
